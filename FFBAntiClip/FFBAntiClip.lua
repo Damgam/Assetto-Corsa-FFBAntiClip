@@ -14,6 +14,7 @@ ConfigFFBAntiClipEnabled = ConfigFile:get("settings", "FFBAntiClipEnabled", true
 ConfigFFBUpdateRate = ConfigFile:get("settings", "FFBUpdateRate", 1) -- multiplier
 ConfigDesiredFFBLevel = ConfigFile:get("settings", "FFBDesiredLevel", 110) -- percentage
 ConfigFFBQuickDrops = ConfigFile:get("settings", "FFBQuickDrops", true)
+ConfigFFBExtraQuickDrops = ConfigFile:get("settings", "FFBExtraQuickDrops", true)
 
 ConfigCurrentCarFFB = DataFile:get(MyCarFolderName, TrackFolderName, Car.ffbMultiplier)
 ac.setFFBMultiplier(ConfigCurrentCarFFB)
@@ -22,25 +23,32 @@ Timer = 0
 Updates = 0
 TimerFFBDrop = 0
 TimerFFBRaise = 0
+RaisesSinceLastDrop = 1
 
 function FFBAntiClipFunction()
-    if (not Sim.isReplayActive) then
-        local ffbCurrent = Car.ffbFinal
-        if (TimerFFBDrop > ConfigFFBUpdateRate or ConfigFFBQuickDrops) and ffbCurrent and (ffbCurrent >= ConfigDesiredFFBLevel*0.01 or ffbCurrent <= (-ConfigDesiredFFBLevel)*0.01) then
-            local ffbMultiplier = Car.ffbMultiplier
+    local ffbCurrent = Car.ffbFinal
+    local ffbMultiplier = Car.ffbMultiplier
+    if ((TimerFFBDrop > ConfigFFBUpdateRate) or ConfigFFBQuickDrops) and ffbCurrent and (ffbCurrent >= ConfigDesiredFFBLevel*0.01 or ffbCurrent <= (-ConfigDesiredFFBLevel)*0.01) then
+        if ConfigFFBExtraQuickDrops and ffbCurrent > (ConfigDesiredFFBLevel*0.01)*1.01 then
+            ac.setFFBMultiplier(ffbMultiplier-((ffbCurrent - ConfigDesiredFFBLevel*0.01)*0.1))
+        else
             ac.setFFBMultiplier(ffbMultiplier-0.001)
-            TimerFFBDrop = 0
         end
-
-        if TimerFFBRaise > ConfigFFBUpdateRate*20 then
-            local ffbMultiplier = Car.ffbMultiplier
-            ac.setFFBMultiplier(ffbMultiplier+0.001)
-            TimerFFBRaise = 0
-            DataFile:set(MyCarFolderName, TrackFolderName, ffbMultiplier)
-            ConfigCurrentCarFFB = ffbMultiplier
-            DataFile:save()
-        end
+        RaisesSinceLastDrop = 1
+        TimerFFBDrop = 0
     end
+
+    if TimerFFBRaise > ConfigFFBUpdateRate*20 then
+        ac.setFFBMultiplier(ffbMultiplier+(0.001*RaisesSinceLastDrop))
+        TimerFFBRaise = 0
+        DataFile:set(MyCarFolderName, TrackFolderName, ffbMultiplier)
+        ConfigCurrentCarFFB = ffbMultiplier
+        DataFile:save()
+        RaisesSinceLastDrop = RaisesSinceLastDrop + 1
+    end
+
+    ac.log(ffbMultiplier)
+    ac.log(ConfigDesiredFFBLevel*0.01)
 end
 
 function script.update(dt)
@@ -52,7 +60,7 @@ function script.update(dt)
     Sim = ac.getSim()
     Car = ac.getCar(Sim.focusedCar)
 
-    if ConfigFFBAntiClipEnabled and Car.speedKmh > 50 then -- FFB Anti-Clip
+    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 2 then -- FFB Anti-Clip
         FFBAntiClipFunction()
     end
 
@@ -85,6 +93,18 @@ function script.windowMain()
     end
     if ui.itemHovered() then
         ui.setTooltip('Reduce gain value as soon as you are clipping, regardless of the update rate')
+    end
+
+    if ConfigFFBQuickDrops then
+        checkbox = ui.checkbox("Extra Quick FFB Gain Reduction", ConfigFFBExtraQuickDrops)
+        if checkbox then
+            ConfigFFBExtraQuickDrops = not ConfigFFBExtraQuickDrops
+            ConfigFile:set("settings", "FFBExtraQuickDrops", ConfigFFBExtraQuickDrops)
+            needToSave = true
+        end
+        if ui.itemHovered() then
+            ui.setTooltip('Reduce gain value as soon as you are clipping straight to the level of no clipping')
+        end
     end
 
     ui.text('Desired Force Feedback Gain')
