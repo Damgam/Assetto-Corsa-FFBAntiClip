@@ -60,7 +60,7 @@ function script.update(dt)
     Sim = ac.getSim()
     Car = ac.getCar(Sim.focusedCar)
 
-    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 2 then -- FFB Anti-Clip
+    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 then -- FFB Anti-Clip
         FFBAntiClipFunction()
     end
 
