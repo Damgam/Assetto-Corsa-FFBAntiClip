@@ -24,18 +24,22 @@ Updates = 0
 TimerFFBDrop = 0
 TimerFFBRaise = 0
 RaisesSinceLastDrop = 1
+ClippingFrames = 0
 
 function FFBAntiClipFunction()
     local ffbCurrent = Car.ffbFinal
     local ffbMultiplier = Car.ffbMultiplier
     if ((TimerFFBDrop > ConfigFFBUpdateRate) or ConfigFFBQuickDrops) and ffbCurrent and (ffbCurrent >= ConfigDesiredFFBLevel*0.01 or ffbCurrent <= (-ConfigDesiredFFBLevel)*0.01) then
-        if ConfigFFBExtraQuickDrops and ffbCurrent > (ConfigDesiredFFBLevel*0.01)*1.01 then
+        if ConfigFFBExtraQuickDrops and ffbCurrent > (ConfigDesiredFFBLevel*0.01)*1.05 and ClippingFrames > 10 then
             ac.setFFBMultiplier(ffbMultiplier-((ffbCurrent - ConfigDesiredFFBLevel*0.01)*0.1))
         else
             ac.setFFBMultiplier(ffbMultiplier-0.001)
         end
         RaisesSinceLastDrop = 1
         TimerFFBDrop = 0
+        ClippingFrames = ClippingFrames + 1
+    elseif ClippingFrames > 0 then
+        ClippingFrames = 0
     end
 
     if TimerFFBRaise > ConfigFFBUpdateRate*20 then
@@ -103,7 +107,7 @@ function script.windowMain()
             needToSave = true
         end
         if ui.itemHovered() then
-            ui.setTooltip('Reduce gain value as soon as you are clipping straight to the level of no clipping')
+            ui.setTooltip('Reduce gain value more when clipping really bad.')
         end
     end
 
