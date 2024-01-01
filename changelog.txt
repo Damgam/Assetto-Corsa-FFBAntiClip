@@ -1,3 +1,2 @@
 1.1
-- Added new Extra Quick FFB Drop option that makes calibration much, MUCH faster.
-- FFB level is now raising faster if there was no drop for a long time... we probably dropped too much.
+Reworked the way FFB is adjusted. Toggle settings are gone, FFB drops have been made way less sensitive to sudden spikes of force and way more sensitive to consistent clipping. If your FFB gain drops too much and you don't get FFB forces above your desired for too long, gain will raise faster all the way until it goes above your desired for a single frame again.
