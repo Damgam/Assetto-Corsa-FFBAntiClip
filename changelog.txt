@@ -1,2 +1,8 @@
+1.2
+- Fixed FFB gain rising during pause
+- Made it less sensitive to stop FFB gain from raising so recovering from bad drops should be quicker.
+- Made FFB gain drops during persistent clipping slower to avoid overreacting.
+- Added new option with per-car target multiplier to fine tune cars that end up being too heavy or too light on the wheel.
+
 1.1
 Reworked the way FFB is adjusted. Toggle settings are gone, FFB drops have been made way less sensitive to sudden spikes of force and way more sensitive to consistent clipping. If your FFB gain drops too much and you don't get FFB forces above your desired for too long, gain will raise faster all the way until it goes above your desired for a single frame again.

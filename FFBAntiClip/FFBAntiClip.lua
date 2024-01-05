@@ -13,6 +13,9 @@ TrackHumanName = ac.getTrackName()
 ConfigFFBAntiClipEnabled = ConfigFile:get("settings", "FFBAntiClipEnabled", true)
 ConfigDesiredFFBLevel = ConfigFile:get("settings", "FFBDesiredLevel", 100) -- percentage
 
+ConfigCarGainModifierEnabled = ConfigFile:get(MyCarFolderName, "FFBGainModifier", false)
+ConfigCarGainModifierValue = ConfigFile:get(MyCarFolderName, "FFBGainModifierValue", 100) -- percentage
+
 ConfigCurrentCarFFB = DataFile:get(MyCarFolderName, TrackFolderName, Car.ffbMultiplier)
 ac.setFFBMultiplier(ConfigCurrentCarFFB)
 
@@ -26,25 +29,23 @@ function FFBAntiClipFunction()
     local ffbCurrent = Car.ffbFinal
     local ffbMultiplier = Car.ffbMultiplier
 
-    if ffbCurrent and (ffbCurrent >= ConfigDesiredFFBLevel*0.01 or ffbCurrent <= (-ConfigDesiredFFBLevel)*0.01) then
+    if ffbCurrent and (ffbCurrent >= (ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01) or ffbCurrent <= -((ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01))) then
         ClippingFrames = ClippingFrames + 1
-        RaisesSinceLastDrop = 1
-        TimerFFBRaise = 0
     elseif ClippingFrames > 0 then
         ClippingFrames = 0
     end
 
     if ClippingFrames > 30 then
-        ac.setFFBMultiplier(ffbMultiplier-0.01)
-    elseif ClippingFrames > 20 then
         ac.setFFBMultiplier(ffbMultiplier-0.001)
-    elseif ClippingFrames > 10 then
+    elseif ClippingFrames > 15 then
         ac.setFFBMultiplier(ffbMultiplier-0.0001)
     elseif ClippingFrames > 5 then
         ac.setFFBMultiplier(ffbMultiplier-0.00001)
+        RaisesSinceLastDrop = 1
+        TimerFFBRaise = 0
     end
 
-    if TimerFFBRaise > 20/RaisesSinceLastDrop then
+    if TimerFFBRaise > 60/RaisesSinceLastDrop then
         ac.setFFBMultiplier(ffbMultiplier+(0.001))
         TimerFFBRaise = 0
         DataFile:set(MyCarFolderName, TrackFolderName, ffbMultiplier)
@@ -62,7 +63,7 @@ function script.update(dt)
     Sim = ac.getSim()
     Car = ac.getCar(Sim.focusedCar)
 
-    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 then -- FFB Anti-Clip
+    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 and (not Sim.isPaused) then -- FFB Anti-Clip
         FFBAntiClipFunction()
     end
 
@@ -96,7 +97,41 @@ function script.windowMain()
         needToSave = true
     end
     if ui.itemHovered() then
-        ui.setTooltip('This basically defines how strong you want your force feedback to be, or if set above 100%, how much clipping you allow to happen. It is recommended to set this value lower for Direct Drive wheels, and higher for weak wheels. Default 110% is perfect for my T300 RS')
+        ui.setTooltip('This basically defines how strong you want your force feedback to be, or if set above 100%, how much clipping you allow to happen. It is recommended to set this value lower for Direct Drive wheels, and higher for weak wheels.')
+    end
+
+    checkbox = ui.checkbox("Car Override Enabled", ConfigCarGainModifierEnabled)
+    if checkbox then
+        ConfigCarGainModifierEnabled = not ConfigCarGainModifierEnabled
+        ConfigFile:set(MyCarFolderName, "FFBGainModifier", ConfigCarGainModifierEnabled)
+        ConfigCurrentCarFFB = ConfigFile:get(MyCarFolderName, TrackFolderName, 1)
+        ac.setFFBMultiplier(ConfigCurrentCarFFB)
+        needToSave = true
+    end
+    if ui.itemHovered() then
+        ui.setTooltip('If the car you are driving ends up with force feedback too low or too high, and you dont want to change the global value, you can set a relative multiplier for this specific car.')
+    end
+
+    if ConfigCarGainModifierEnabled then
+        
+        ui.text('Car Override Value (Relative to global)')
+        local sliderValue3 = ConfigCarGainModifierValue
+        sliderValue3 = ui.slider("% (Default 100%) ##slider3", sliderValue3, 0, 200)
+        if ConfigCarGainModifierValue ~= sliderValue3 then
+            ConfigCarGainModifierValue = sliderValue3
+            ConfigFile:set(MyCarFolderName, "FFBGainModifierValue", sliderValue3)
+            needToSave = true
+        end
+        if ui.itemHovered() then
+            ui.setTooltip('Car specific multiplier for gain target. Use this if the car youre driving has too low or too high gain and you dont want to change the global setting')
+        end
+
+        ui.text('Result: ' .. ((ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01))*100 .. "%")
+        
+    elseif (not ConfigCarGainModifierEnabled) and ConfigCarGainModifierValue ~= 100 then
+        ConfigCarGainModifierValue = 100
+        ConfigFile:set(MyCarFolderName, "FFBGainModifierValue", 100)
+        needToSave = true
     end
 
     if needToSave then
