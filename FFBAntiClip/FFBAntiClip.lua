@@ -11,7 +11,7 @@ TrackFolderName = ac.getTrackFullID("_")
 TrackHumanName = ac.getTrackName()
 
 ConfigFFBAntiClipEnabled = ConfigFile:get("settings", "FFBAntiClipEnabled", true)
-ConfigDesiredFFBLevel = ConfigFile:get("settings", "FFBDesiredLevel", 100) -- percentage
+ConfigDesiredFFBLevel = ConfigFile:get("settings", "FFBDesiredLevel", 90) -- percentage
 
 ConfigCarGainModifierEnabled = ConfigFile:get(MyCarFolderName, "FFBGainModifier", false)
 ConfigCarGainModifierValue = ConfigFile:get(MyCarFolderName, "FFBGainModifierValue", 100) -- percentage
@@ -137,7 +137,7 @@ function script.windowMain()
 
     ui.text('Desired Force Feedback Gain')
     local sliderValue2 = ConfigDesiredFFBLevel
-    sliderValue2 = ui.slider("% (Default 100%) ##slider2", sliderValue2, 0, 200)
+    sliderValue2 = ui.slider("% (Default 90%) ##slider2", sliderValue2, 0, 200)
     if ConfigDesiredFFBLevel ~= sliderValue2 then
         ConfigDesiredFFBLevel = sliderValue2
         ConfigFile:set("settings", "FFBDesiredLevel", sliderValue2)

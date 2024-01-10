@@ -1,5 +1,5 @@
 1.2
-Reworked the way FFB adjustments works once again, this time, completely from scratch with very different method, giving way more stable results. Instead of reacting for spikes in place, it measures average forces while cornering, and if averages are higher than your target, gain is reduced, if averages are below your target, it's increased. Results in way less fluctuations and random gain drops.
+Reworked the way FFB adjustments works once again, this time, completely from scratch with very different method, giving way more stable results. Instead of reacting for spikes in place, it measures average forces while cornering, and if averages are higher than your target, gain is reduced, if averages are below your target, it's increased. Results in way less fluctuations and random gain drops. Default target got lowered from 100% to 90% due to the new method allowing some peak clipping above the target.
 
 1.1
 Reworked the way FFB is adjusted. Toggle settings are gone, FFB drops have been made way less sensitive to sudden spikes of force and way more sensitive to consistent clipping. If your FFB gain drops too much and you don't get FFB forces above your desired for too long, gain will raise faster all the way until it goes above your desired for a single frame again.
