@@ -25,10 +25,49 @@ TimerFFBRaise = 0
 RaisesSinceLastDrop = 1
 ClippingFrames = 0
 
+local samples = {}
+local avgFPS = 60
+
+function math_average(t)
+    local sum = 0
+    for _,v in pairs(t) do -- Get the sum of all numbers in t
+        sum = sum + v
+    end
+    return sum / #t
+end
+
 function FFBAntiClipFunction()
     local ffbCurrent = Car.ffbFinal
     local ffbMultiplier = Car.ffbMultiplier
+    local ffbTarget = (ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01)
+    
 
+    if ffbCurrent and math.abs(ffbCurrent) >= ffbTarget*0.75 then -- Only take samples when FFB is higher than 80% of target to avoid it gaining on straights. We want to see how the FFB acts under pressure.
+        if math.abs(ffbCurrent) >= math.min(1, ffbTarget) then
+            for _ = 1,4 do
+                samples[#samples+1] = math.abs(ffbCurrent)
+            end
+        elseif math.abs(ffbCurrent) >= ffbTarget then
+            for _ = 1,2 do
+                samples[#samples+1] = math.abs(ffbCurrent)
+            end
+        else
+            TimerFFBRaise = 0
+            samples[#samples+1] = math.abs(ffbCurrent)
+        end
+    end
+    --ac.log(avgFPS)
+    if #samples >= 10*avgFPS then
+        local ffbAverage = math_average(samples)
+        ac.setFFBMultiplier(ffbMultiplier + ((ffbTarget - ffbAverage)*0.1))
+        samples = {}
+    elseif TimerFFBRaise > 10 then
+        TimerFFBRaise = 0
+        ac.setFFBMultiplier(ffbMultiplier + 0.001)
+    end
+
+
+    --[[ -- old solution
     if ffbCurrent and (ffbCurrent >= (ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01) or ffbCurrent <= -((ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01))) then
         ClippingFrames = ClippingFrames + 1
     elseif ClippingFrames > 0 then
@@ -39,7 +78,7 @@ function FFBAntiClipFunction()
         ac.setFFBMultiplier(ffbMultiplier-0.001)
     elseif ClippingFrames > 15 then
         ac.setFFBMultiplier(ffbMultiplier-0.0001)
-    elseif ClippingFrames > 5 then
+    elseif ClippingFrames > 2 then
         ac.setFFBMultiplier(ffbMultiplier-0.00001)
         RaisesSinceLastDrop = 1
         TimerFFBRaise = 0
@@ -53,6 +92,12 @@ function FFBAntiClipFunction()
         DataFile:save()
         RaisesSinceLastDrop = RaisesSinceLastDrop + 1
     end
+    ]]
+
+    if Updates%600 == 0 then
+        DataFile:set(MyCarFolderName, TrackFolderName, ffbMultiplier)
+        DataFile:save()
+    end
 end
 
 function script.update(dt)
@@ -62,6 +107,8 @@ function script.update(dt)
 
     Sim = ac.getSim()
     Car = ac.getCar(Sim.focusedCar)
+
+    avgFPS = ((avgFPS*599)+Sim.fps)/600
 
     if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 and (not Sim.isPaused) then -- FFB Anti-Clip
         FFBAntiClipFunction()
