@@ -1,3 +1,6 @@
+1.2.1
+FFBClip will now disable itself when your car is controlled by AI
+
 1.2
 Reworked the way FFB adjustments works once again, this time, completely from scratch with very different method, giving way more stable results. Instead of reacting for spikes in place, it measures average forces while cornering, and if averages are higher than your target, gain is reduced, if averages are below your target, it's increased. Results in way less fluctuations and random gain drops. Default target got lowered from 100% to 90% due to the new method allowing some peak clipping above the target.
 
