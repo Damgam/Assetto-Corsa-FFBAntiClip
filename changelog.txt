@@ -1,3 +1,6 @@
+1.2.2
+FFBClip will now disable itself when you are driving with controller or keyboard
+
 1.2.1
 FFBClip will now disable itself when your car is controlled by AI
 

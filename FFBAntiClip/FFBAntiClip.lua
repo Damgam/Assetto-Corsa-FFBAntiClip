@@ -110,7 +110,7 @@ function script.update(dt)
 
     avgFPS = ((avgFPS*599)+Sim.fps)/600
 
-    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 and (not Sim.isPaused) and (not Car.isAIControlled) then -- FFB Anti-Clip
+    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 and (not Sim.isPaused) and (not Car.isAIControlled) and ac.getSim().inputMode == 0 then -- FFB Anti-Clip
         FFBAntiClipFunction()
     end
 
