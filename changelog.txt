@@ -1,3 +1,7 @@
+1.3
+FFBClip will now disable itself for 10, 20 or 30 seconds after crashing the car. The duration depends on severity of the crash.
+This is intended to prevent FFB value from getting destroyed when your car stars doing crazy stuff after big crashes.
+
 1.2.2
 FFBClip will now disable itself when you are driving with controller or keyboard
 

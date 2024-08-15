@@ -100,6 +100,8 @@ function FFBAntiClipFunction()
     end
 end
 
+local crashTimer = 0
+
 function script.update(dt)
     Timer = Timer + dt
     Updates = Updates + 1
@@ -107,10 +109,21 @@ function script.update(dt)
 
     Sim = ac.getSim()
     Car = ac.getCar(Sim.focusedCar)
+    if Car.collisionDepth > 0 then
+        if Car.collisionDepth < 0.1 and crashTimer < 10 then
+            crashTimer = 10
+        elseif Car.collisionDepth >= 0.1 and Car.collisionDepth < 0.25 and crashTimer < 20 then
+            crashTimer = 20
+        elseif Car.collisionDepth >= 0.25 and crashTimer < 30 then
+            crashTimer = 30
+        end
+    elseif crashTimer > 0 then
+        crashTimer = crashTimer - dt
+    end
 
     avgFPS = ((avgFPS*599)+Sim.fps)/600
 
-    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 and (not Sim.isPaused) and (not Car.isAIControlled) and ac.getSim().inputMode == 0 then -- FFB Anti-Clip
+    if ConfigFFBAntiClipEnabled and (not Sim.isReplayActive) and Car.speedKmh > 50 and (not Sim.isPaused) and (not Car.isAIControlled) and ac.getSim().inputMode == 0 and crashTimer <= 0 then -- FFB Anti-Clip
         FFBAntiClipFunction()
     end
 
