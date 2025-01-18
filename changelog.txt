@@ -1,3 +1,9 @@
+2.0
+- Tweaked how the FFB is set a little bit. Will now take a bit more time but will give more stable results.
+- Removed the per-track FFB levels. It's more annoying than useful in the long term, so, yea.
+- FFB Clip will now wait till you finish a turn before applying adjustments.
+- Added countdowns of samples/time to the next adjustment, and what the adjustment is gonna be.
+
 1.3
 FFBClip will now disable itself for 10, 20 or 30 seconds after crashing the car. The duration depends on severity of the crash.
 This is intended to prevent FFB value from getting destroyed when your car stars doing crazy stuff after big crashes.

@@ -7,8 +7,6 @@ Car = ac.getCar(Sim.focusedCar)
 MyCarID = Sim.focusedCar
 MyCarFolderName = ac.getCarID(Sim.focusedCar)
 MyCarHumanName = ac.getCarName(Sim.focusedCar, true)
-TrackFolderName = ac.getTrackFullID("_")
-TrackHumanName = ac.getTrackName()
 
 ConfigFFBAntiClipEnabled = ConfigFile:get("settings", "FFBAntiClipEnabled", true)
 ConfigDesiredFFBLevel = ConfigFile:get("settings", "FFBDesiredLevel", 90) -- percentage
@@ -16,7 +14,7 @@ ConfigDesiredFFBLevel = ConfigFile:get("settings", "FFBDesiredLevel", 90) -- per
 ConfigCarGainModifierEnabled = ConfigFile:get(MyCarFolderName, "FFBGainModifier", false)
 ConfigCarGainModifierValue = ConfigFile:get(MyCarFolderName, "FFBGainModifierValue", 100) -- percentage
 
-ConfigCurrentCarFFB = DataFile:get(MyCarFolderName, TrackFolderName, Car.ffbMultiplier)
+ConfigCurrentCarFFB = DataFile:get(MyCarFolderName, "FFB", Car.ffbMultiplier)
 ac.setFFBMultiplier(ConfigCurrentCarFFB)
 
 Timer = 0
@@ -42,7 +40,8 @@ function FFBAntiClipFunction()
     local ffbTarget = (ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01)
     
 
-    if ffbCurrent and math.abs(ffbCurrent) >= ffbTarget*0.75 then -- Only take samples when FFB is higher than 80% of target to avoid it gaining on straights. We want to see how the FFB acts under pressure.
+    if ffbCurrent and math.abs(ffbCurrent) >= ffbTarget*0.5 then -- Only take samples when FFB is higher than 80% of target to avoid it gaining on straights. We want to see how the FFB acts under pressure.
+        TimerFFBRaise = 0
         if math.abs(ffbCurrent) >= math.min(1, ffbTarget) then
             for _ = 1,4 do
                 samples[#samples+1] = math.abs(ffbCurrent)
@@ -52,20 +51,20 @@ function FFBAntiClipFunction()
                 samples[#samples+1] = math.abs(ffbCurrent)
             end
         else
-            TimerFFBRaise = 0
             samples[#samples+1] = math.abs(ffbCurrent)
         end
     end
     --ac.log(avgFPS)
-    if #samples >= 10*avgFPS then
-        local ffbAverage = math_average(samples)
-        ac.setFFBMultiplier(ffbMultiplier + ((ffbTarget - ffbAverage)*0.1))
-        samples = {}
-    elseif TimerFFBRaise > 10 then
-        TimerFFBRaise = 0
-        ac.setFFBMultiplier(ffbMultiplier + 0.001)
+    if math.abs(ffbCurrent) < 0.05 then
+        if #samples >= 20*avgFPS then
+            local ffbAverage = math_average(samples)
+            ac.setFFBMultiplier(ffbMultiplier + math.max(-0.2, math.min(0.02, ((ffbTarget - ffbAverage)))*0.1))
+            samples = {}
+        elseif TimerFFBRaise > 10 then
+            TimerFFBRaise = 0
+            ac.setFFBMultiplier(ffbMultiplier + 0.001)
+        end
     end
-
 
     --[[ -- old solution
     if ffbCurrent and (ffbCurrent >= (ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01) or ffbCurrent <= -((ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01))) then
@@ -87,7 +86,7 @@ function FFBAntiClipFunction()
     if TimerFFBRaise > 60/RaisesSinceLastDrop then
         ac.setFFBMultiplier(ffbMultiplier+(0.001))
         TimerFFBRaise = 0
-        DataFile:set(MyCarFolderName, TrackFolderName, ffbMultiplier)
+        DataFile:set(MyCarFolderName, "FFB", ffbMultiplier)
         ConfigCurrentCarFFB = ffbMultiplier
         DataFile:save()
         RaisesSinceLastDrop = RaisesSinceLastDrop + 1
@@ -95,7 +94,7 @@ function FFBAntiClipFunction()
     ]]
 
     if Updates%600 == 0 then
-        DataFile:set(MyCarFolderName, TrackFolderName, ffbMultiplier)
+        DataFile:set(MyCarFolderName, "FFB", ffbMultiplier)
         DataFile:save()
     end
 end
@@ -132,18 +131,28 @@ end
 function script.windowMain()
     local needToSave = false
     local checkbox = false
-
+    
+    ui.separator()
+    ui.text(MyCarHumanName)
     ui.separator()
     ui.text("Force Feedback. Current: " .. math.ceil(Car.ffbMultiplier*10000)/100 .. "%")
-    ui.text(MyCarHumanName)
-    ui.text(TrackHumanName)
+    local nextAdjustment = (math.ceil(math.max(-0.2, math.min(0.02, (((ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01) - math_average(samples))))*0.1)*10000)/100)
+    if nextAdjustment > 0 then
+        ui.text("Next Adjustment: +" .. nextAdjustment .. "%")
+    else
+        ui.text("Next Adjustment: " .. nextAdjustment .. "%")
+    end
+    
+    ui.separator()
+    ui.text("Samples Until Next Adjustment: " .. math.max(0, math.ceil((20*avgFPS) - #samples)))
+    ui.text("Time Until Next Passive FFB Raise: " .. math.max(0, math.ceil(10 - TimerFFBRaise)) .. " Seconds")
     ui.separator()
 
     checkbox = ui.checkbox("Enabled", ConfigFFBAntiClipEnabled)
     if checkbox then
         ConfigFFBAntiClipEnabled = not ConfigFFBAntiClipEnabled
         ConfigFile:set("settings", "FFBAntiClipEnabled", ConfigFFBAntiClipEnabled)
-        ConfigCurrentCarFFB = DataFile:get(MyCarFolderName, TrackFolderName, 1)
+        ConfigCurrentCarFFB = DataFile:get(MyCarFolderName, "FFB", 1)
         ac.setFFBMultiplier(ConfigCurrentCarFFB)
         needToSave = true
     end
@@ -164,7 +173,7 @@ function script.windowMain()
     if checkbox then
         ConfigCarGainModifierEnabled = not ConfigCarGainModifierEnabled
         ConfigFile:set(MyCarFolderName, "FFBGainModifier", ConfigCarGainModifierEnabled)
-        ConfigCurrentCarFFB = ConfigFile:get(MyCarFolderName, TrackFolderName, 1)
+        ConfigCurrentCarFFB = ConfigFile:get(MyCarFolderName, "FFB", 1)
         ac.setFFBMultiplier(ConfigCurrentCarFFB)
         needToSave = true
     end
