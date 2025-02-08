@@ -42,12 +42,8 @@ function FFBAntiClipFunction()
 
     if ffbCurrent and math.abs(ffbCurrent) >= ffbTarget*0.5 then -- Only take samples when FFB is higher than 80% of target to avoid it gaining on straights. We want to see how the FFB acts under pressure.
         TimerFFBRaise = 0
-        if math.abs(ffbCurrent) >= math.min(1, ffbTarget) then
+        if math.abs(ffbCurrent) >= ffbTarget then
             for _ = 1,4 do
-                samples[#samples+1] = math.abs(ffbCurrent)
-            end
-        elseif math.abs(ffbCurrent) >= ffbTarget then
-            for _ = 1,2 do
                 samples[#samples+1] = math.abs(ffbCurrent)
             end
         else
@@ -65,33 +61,6 @@ function FFBAntiClipFunction()
             ac.setFFBMultiplier(ffbMultiplier + 0.001)
         end
     end
-
-    --[[ -- old solution
-    if ffbCurrent and (ffbCurrent >= (ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01) or ffbCurrent <= -((ConfigDesiredFFBLevel*0.01)*(ConfigCarGainModifierValue*0.01))) then
-        ClippingFrames = ClippingFrames + 1
-    elseif ClippingFrames > 0 then
-        ClippingFrames = 0
-    end
-
-    if ClippingFrames > 30 then
-        ac.setFFBMultiplier(ffbMultiplier-0.001)
-    elseif ClippingFrames > 15 then
-        ac.setFFBMultiplier(ffbMultiplier-0.0001)
-    elseif ClippingFrames > 2 then
-        ac.setFFBMultiplier(ffbMultiplier-0.00001)
-        RaisesSinceLastDrop = 1
-        TimerFFBRaise = 0
-    end
-
-    if TimerFFBRaise > 60/RaisesSinceLastDrop then
-        ac.setFFBMultiplier(ffbMultiplier+(0.001))
-        TimerFFBRaise = 0
-        DataFile:set(MyCarFolderName, "FFB", ffbMultiplier)
-        ConfigCurrentCarFFB = ffbMultiplier
-        DataFile:save()
-        RaisesSinceLastDrop = RaisesSinceLastDrop + 1
-    end
-    ]]
 
     if Updates%600 == 0 then
         DataFile:set(MyCarFolderName, "FFB", ffbMultiplier)
